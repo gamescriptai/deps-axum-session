@@ -14,4 +14,4 @@ repository = "https://github.com/AscendingCreations/AxumSession"
 axum_session.workspace = true
 chrono.workspace = true
 async-trait.workspace = true
-surrealdb = { package = "surrealdb-beta", version = "2.0.0"}
+surrealdb = "2.0.1"
