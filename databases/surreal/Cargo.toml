@@ -14,4 +14,4 @@ repository = "https://github.com/AscendingCreations/AxumSession"
 axum_session.workspace = true
 chrono.workspace = true
 async-trait.workspace = true
-surrealdb = "2.0.1"
+surrealdb = { git = "https://github.com/gamescriptai/surrealdb", rev = "108335bc04e15a73c9c20226d36b9ed616e13d9c" }
