@@ -281,8 +281,10 @@ where
                 let clone_session = if let Some(mut sess) =
                     session.store.inner.get_mut(&session.id.clone())
                 {
-                    // Check if Database needs to be updated or not. TODO: Make updatable based on a timer for in memory only.
-                    if session.store.config.database.always_save || sess.update || !sess.expired() {
+                    // Check if Database needs to be updated or not.
+                    // Only save if explicitly configured (always_save) or session was modified (update).
+                    // Removed `|| !sess.expired()` which caused saves on every request for non-expired sessions.
+                    if session.store.config.database.always_save || sess.update {
                         if sess.longterm {
                             sess.expires = Utc::now() + session.store.config.max_lifespan;
                         } else {
