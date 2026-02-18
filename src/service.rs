@@ -98,22 +98,30 @@ where
             };
 
             if check_database {
-                let mut fresh_session = session
+                let (mut fresh_session, loaded_from_db) = match session
                     .store
                     .load_session(session.id.clone())
                     .await
                     .ok()
                     .flatten()
-                    .unwrap_or_else(|| {
+                {
+                    Some(sess) => (sess, true),
+                    None => {
                         tracing::info!(
                             "Session {} did not exist in Database. So it was Recreated.",
                             session.id.clone()
                         );
-                        SessionData::new(session.id.clone(), storable, &session.store.config)
-                    });
+                        (
+                            SessionData::new(session.id.clone(), storable, &session.store.config),
+                            false,
+                        )
+                    }
+                };
 
                 fresh_session.autoremove = Utc::now() + session.store.config.memory.memory_lifespan;
-                fresh_session.store = storable;
+                // If found in DB, the session was already persisted — keep it storable
+                // even without the store cookie (backward compat with pre-OptIn sessions).
+                fresh_session.store = if loaded_from_db { true } else { storable };
                 fresh_session.update = true;
                 fresh_session.requests = 1;
                 session
@@ -325,7 +333,10 @@ where
 
                 let _ = session.store.inner.remove(&session.id);
 
-                if session.store.is_persistent() {
+                // Only delete from DB on explicit destroy, not when the store cookie
+                // is missing. Missing store cookie just means the session shouldn't be
+                // kept in memory — the DB record is cleaned up by the expiry purge.
+                if destroy && session.store.is_persistent() {
                     if let Err(err) = session
                         .store
                         .database_remove_session(session.id.clone())
