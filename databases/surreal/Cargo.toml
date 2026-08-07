@@ -15,4 +15,5 @@ axum_session.workspace = true
 chrono.workspace = true
 async-trait.workspace = true
 serde.workspace = true
-surrealdb = { version = "2.3.9" }
+# The application supplies the already-configured Surreal connection.
+surrealdb = { version = "2.3.9", default-features = false }
