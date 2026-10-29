@@ -94,7 +94,7 @@ impl<C: Connection> DatabasePool for SessionSurrealPool<C> {
     async fn count(&self, table_name: &str) -> Result<i64, DatabaseError> {
         let mut res = self
             .connection
-            .query("SELECT count() AS amount FROM type::table($table_name) GROUP BY amount;")
+            .query("SELECT count() AS amount FROM type::table($table_name) GROUP ALL;")
             .bind(("table_name", table_name.to_string()))
             .await
             .map_err(|err| DatabaseError::GenericSelectError(err.to_string()))?;
@@ -118,7 +118,7 @@ impl<C: Connection> DatabasePool for SessionSurrealPool<C> {
     ) -> Result<(), DatabaseError> {
         self.connection
         .query(
-            "UPSERT type::thing($table_name, $session_id) SET sessionstore = $store, sessionexpires = $expire, sessionid = $session_id;",
+            "UPSERT type::record($table_name, $session_id) SET sessionstore = $store, sessionexpires = $expire, sessionid = $session_id;",
         )
         .bind(("table_name", table_name.to_string()))
         .bind(("session_id", id.to_string()))
@@ -133,7 +133,7 @@ impl<C: Connection> DatabasePool for SessionSurrealPool<C> {
         let mut res = self
             .connection
             .query(
-                "SELECT sessionstore FROM type::thing($table_name, $session_id)
+                "SELECT sessionstore FROM type::record($table_name, $session_id)
                 WHERE sessionexpires = NONE OR type::number(sessionexpires) > $expires;",
             )
             .bind(("table_name", table_name.to_string()))
@@ -150,7 +150,7 @@ impl<C: Connection> DatabasePool for SessionSurrealPool<C> {
 
     async fn delete_one_by_id(&self, id: &str, table_name: &str) -> Result<(), DatabaseError> {
         self.connection
-            .query("DELETE type::thing($table_name, $session_id);")
+            .query("DELETE type::record($table_name, $session_id);")
             .bind(("table_name", table_name.to_string()))
             .bind(("session_id", id.to_string()))
             .await
@@ -163,8 +163,8 @@ impl<C: Connection> DatabasePool for SessionSurrealPool<C> {
         let mut res = self
             .connection
             .query(
-                "SELECT count() AS amount FROM type::thing($table_name, $session_id)
-                WHERE sessionexpires = NONE OR type::number(sessionexpires) > $expires GROUP BY amount;",
+                "SELECT count() AS amount FROM type::record($table_name, $session_id)
+                WHERE sessionexpires = NONE OR type::number(sessionexpires) > $expires GROUP ALL;",
             )
             .bind(("table_name", table_name.to_string()))
             .bind(("session_id", id.to_string()))
